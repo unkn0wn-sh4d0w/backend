@@ -12,11 +12,7 @@ export default async function handler(req, res) {
     return res.status(405).send("Only POST allowed");
   }
 
-  const { type, message, username, api_key } = req.body;
-
-  if (!api_key || api_key !== process.env.API_KEY) {
-    return res.status(403).json({ error: "Invalid API key" });
-  }
+  const { type, message, username } = req.body;
 
   if (!username || username.length > 50) {
     return res.status(400).json({ error: "Invalid username" });
