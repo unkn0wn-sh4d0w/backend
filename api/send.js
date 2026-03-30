@@ -1,9 +1,4 @@
 export default async function handler(req, res) {
-  const allowedOrigin = "https://unkn0wn-sh4d0w.github.io";
-  if (req.headers.origin !== allowedOrigin) {
-    return res.status(403).json({ error: "Forbidden" });
-  }
-
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
