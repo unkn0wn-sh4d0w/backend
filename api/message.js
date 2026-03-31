@@ -12,6 +12,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
+    // Parse JSON manually
     let body = "";
     await new Promise((resolve, reject) => {
       req.on("data", chunk => body += chunk);
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
 
     const msg = { text, user, id, time: Date.now() };
 
-    // **LPUSH** – push message to Upstash
+    // Push message to Upstash
     const pushRes = await fetch(`${UPSTASH_URL}/lpush/chat_messages`, {
       method: "POST",
       headers: {
@@ -42,9 +43,10 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify([JSON.stringify(msg)])
     });
-    console.log("LPUSH response:", await pushRes.json());
+    const pushData = await pushRes.json();
+    console.log("LPUSH response:", pushData);
 
-    // **LTRIM** – keep only last 100 messages
+    // Keep last 100 messages
     const trimRes = await fetch(`${UPSTASH_URL}/ltrim/chat_messages`, {
       method: "POST",
       headers: {
@@ -53,7 +55,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({ start: 0, stop: 99 })
     });
-    console.log("LTRIM response:", await trimRes.json());
+    const trimData = await trimRes.json();
+    console.log("LTRIM response:", trimData);
 
     res.status(200).json({ success: true });
   } catch(err) {
