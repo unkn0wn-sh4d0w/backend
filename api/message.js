@@ -1,7 +1,6 @@
-// api/message.js
-const fetch = require("node-fetch");
+import fetch from "node-fetch"; // Only if Node <18; Node 18+ has fetch global
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
@@ -54,8 +53,8 @@ module.exports = async function handler(req, res) {
     });
 
     res.status(200).json({ success: true });
-  } catch (err) {
+  } catch(err) {
     console.error("Message error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
-};
+}
