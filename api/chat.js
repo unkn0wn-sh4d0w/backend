@@ -1,4 +1,6 @@
-export default async function handler(req, res) {
+// backends/chat.js
+const fetch = require("node-fetch"); // if needed
+module.exports = async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
@@ -17,19 +19,16 @@ export default async function handler(req, res) {
     const r = await fetch(`${UPSTASH_URL}/lrange/chat_messages/0/99`, {
       headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` }
     });
-    const data = await r.json();
+    const data = Array.isArray(await r.json()) ? await r.json() : { result: [] };
 
-    // Ensure data.result exists
-    const messages = Array.isArray(data.result)
-      ? data.result
-          .map(m => { try { return JSON.parse(m); } catch(e){ return null; })
-          .filter(m => m && m.user && m.text)
-          .reverse()
-      : [];
+    const messages = (data.result || [])
+      .map(m => { try { return JSON.parse(m); } catch(e){ return null; })
+      .filter(m => m && m.user && m.text)
+      .reverse();
 
     res.status(200).json(messages);
   } catch (err) {
     console.error("Chat fetch error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};
