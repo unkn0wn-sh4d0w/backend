@@ -2,7 +2,6 @@ export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
-  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -15,10 +14,10 @@ export default async function handler(req, res) {
       headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` }
     });
     const data = await r.json();
-    const messages = data.result.map(m => JSON.parse(m)).reverse();
+    const messages = data.result.map(m => JSON.parse(m)).reverse(); // parse stored JSON strings
     res.status(200).json(messages);
   } catch (err) {
-    console.error(err);
+    console.error("Chat error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
