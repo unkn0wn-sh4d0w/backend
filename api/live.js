@@ -2,14 +2,7 @@ export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
-  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
-
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -22,13 +15,14 @@ export default async function handler(req, res) {
         headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` }
       });
       const data = await r.json();
-      const current = JSON.stringify(data.result);
+      const messages = data.result.map(m => JSON.parse(m));
+      const current = JSON.stringify(messages);
       if (current !== last) {
         last = current;
-        res.write(`data: ${JSON.stringify(data.result)}\n\n`);
+        res.write(`data: ${JSON.stringify(messages)}\n\n`);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Live error:", err);
     }
   }, 1000);
 
