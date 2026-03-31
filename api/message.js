@@ -11,8 +11,14 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    // Use Vercel Node 24 Request.json() for automatic JSON parsing
-    const body = await req.json();
+    // NODE 24 SAFE JSON PARSE
+    let body = "";
+    await new Promise((resolve, reject) => {
+      req.on("data", chunk => body += chunk);
+      req.on("end", () => resolve());
+      req.on("error", err => reject(err));
+    });
+    body = JSON.parse(body);
 
     const { text, user, id } = body;
     if (!text || !user || !id) return res.status(400).json({ error: "Missing data" });
