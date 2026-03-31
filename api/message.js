@@ -1,5 +1,3 @@
-import fetch from "node-fetch"; // Only if Node <18; Node 18+ has fetch global
-
 export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
