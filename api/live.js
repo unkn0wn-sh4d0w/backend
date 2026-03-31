@@ -6,35 +6,36 @@ const redis = new Redis({
 });
 
 export default async function handler(req, res) {
-  // --- CORS ---
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
 
-  // --- SSE Headers ---
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+
+  // SSE headers
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  // Helper to send data
-  const send = (data) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-  };
-
   let last = "";
 
-  // Poll every 1s
+  // Poll every 1 second
   const interval = setInterval(async () => {
-    const data = await redis.lrange("chat_messages", 0, 50);
-    const current = data.join("");
-    if (current !== last) {
-      last = current;
-      send(data);
+    try {
+      const data = await redis.lrange("chat_messages", 0, 50);
+      const current = data.join("");
+      if (current !== last) {
+        last = current;
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
+    } catch (err) {
+      console.error("Redis error:", err);
     }
   }, 1000);
 
-  // Clean up when client disconnects
+  // Stop interval when client disconnects
   req.on("close", () => {
     clearInterval(interval);
     res.end();
