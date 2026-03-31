@@ -1,32 +1,42 @@
 import { Redis } from "@upstash/redis";
 
-export const config = { runtime: "edge" };
-
 const redis = new Redis({
   url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN
+  token: process.env.KV_REST_API_TOKEN,
 });
 
-export default async function handler(req) {
-  const stream = new ReadableStream({
-    async start(controller) {
-      let last = "";
-      while (true) {
-        const data = await redis.lrange("chat_messages", 0, 50);
-        const current = JSON.stringify(data);
-        if (current !== last) {
-          controller.enqueue(`data: ${current}\n\n`);
-          last = current;
-        }
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-  });
+export default async function handler(req, res) {
+  // --- CORS ---
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+  // --- SSE Headers ---
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  // Helper to send data
+  const send = (data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  let last = "";
+
+  // Poll every 1s
+  const interval = setInterval(async () => {
+    const data = await redis.lrange("chat_messages", 0, 50);
+    const current = data.join("");
+    if (current !== last) {
+      last = current;
+      send(data);
     }
+  }, 1000);
+
+  // Clean up when client disconnects
+  req.on("close", () => {
+    clearInterval(interval);
+    res.end();
   });
 }
