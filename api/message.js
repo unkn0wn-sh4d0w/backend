@@ -35,14 +35,14 @@ export default async function handler(req, res) {
     const msg = { text, user, id, time: Date.now() };
 
     // Push message to Upstash list
-    await fetch(`${UPSTASH_URL}/lpush/chat_messages`, {
-      method: "POST",
-      headers: { 
-        "Authorization": `Bearer ${UPSTASH_TOKEN}`, 
-        "Content-Type": "application/json" 
-      },
-      body: JSON.stringify([JSON.stringify(msg)])
-    });
+    await fetch(`${UPSTASH_URL}/ltrim/chat_messages/0/99`, {
+  method: "POST",
+  headers: { 
+    "Authorization": `Bearer ${UPSTASH_TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify([]) // must be present
+});
 
     // Keep last 100 messages (must include Content-Type and body)
     await fetch(`${UPSTASH_URL}/ltrim/chat_messages/0/99`, {
