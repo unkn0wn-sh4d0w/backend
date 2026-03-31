@@ -4,13 +4,10 @@
   "description": "Live chat backend with Upstash Redis for Vercel",
   "main": "index.js",
   "scripts": {
-    "dev": "vercel dev",
     "start": "vercel dev"
   },
-  "author": "Youame",
-  "license": "MIT",
   "dependencies": {
-    "@upstash/redis": "^2.0.0"
+    "@upstash/redis": "^2.2.0"
   },
   "engines": {
     "node": "24.x"
