@@ -5,8 +5,6 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  // Prevent caching
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
@@ -21,10 +19,13 @@ export default async function handler(req, res) {
     });
     const data = await r.json();
 
-    const messages = (data.result || [])
-      .map(m => { try { return JSON.parse(m); } catch(e){ return null; } })
-      .filter(m => m && m.user && m.text)
-      .reverse();
+    // Ensure data.result exists
+    const messages = Array.isArray(data.result)
+      ? data.result
+          .map(m => { try { return JSON.parse(m); } catch(e){ return null; })
+          .filter(m => m && m.user && m.text)
+          .reverse()
+      : [];
 
     res.status(200).json(messages);
   } catch (err) {
