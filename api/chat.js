@@ -1,7 +1,8 @@
 // api/chat.js
-const fetch = require("node-fetch"); // if using Node 18+ you can omit
+// No require; use import if needed
+// import fetch from "node-fetch"; // only if Node <18
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
@@ -25,11 +26,8 @@ module.exports = async function handler(req, res) {
     const messages = Array.isArray(data.result)
       ? data.result
           .map(m => {
-            try {
-              return JSON.parse(m);
-            } catch (e) {
-              return null;
-            }
+            try { return JSON.parse(m); } 
+            catch(e) { return null; }
           })
           .filter(m => m && m.user && m.text)
           .reverse()
@@ -40,4 +38,4 @@ module.exports = async function handler(req, res) {
     console.error("Chat fetch error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
-};
+}
