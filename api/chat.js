@@ -1,5 +1,4 @@
-// backends/chat.js
-const fetch = require("node-fetch"); // if needed
+// api/chat.js
 module.exports = async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
@@ -19,12 +18,17 @@ module.exports = async function handler(req, res) {
     const r = await fetch(`${UPSTASH_URL}/lrange/chat_messages/0/99`, {
       headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` }
     });
-    const data = Array.isArray(await r.json()) ? await r.json() : { result: [] };
+    const data = await r.json();
 
-    const messages = (data.result || [])
-      .map(m => { try { return JSON.parse(m); } catch(e){ return null; })
-      .filter(m => m && m.user && m.text)
-      .reverse();
+    const messages = Array.isArray(data.result)
+      ? data.result
+          .map(m => { 
+              try { return JSON.parse(m); } 
+              catch(e){ return null; } 
+          })
+          .filter(m => m && m.user && m.text)
+          .reverse()
+      : [];
 
     res.status(200).json(messages);
   } catch (err) {
