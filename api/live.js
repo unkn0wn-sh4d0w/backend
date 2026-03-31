@@ -1,10 +1,9 @@
-// api/live.js
-const fetch = require("node-fetch");
-
-module.exports = async function handler(req, res) {
+// /api/live.js
+export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
+  // SSE headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -18,6 +17,7 @@ module.exports = async function handler(req, res) {
         headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
       });
       const data = await r.json();
+
       const messages = Array.isArray(data.result)
         ? data.result.map(m => {
             try { return JSON.parse(m); } catch(e){ return null; }
@@ -38,4 +38,4 @@ module.exports = async function handler(req, res) {
     clearInterval(interval);
     res.end();
   });
-};
+}
