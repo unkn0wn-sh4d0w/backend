@@ -1,4 +1,7 @@
-export default async function handler(req, res) {
+// api/live.js
+const fetch = require("node-fetch");
+
+module.exports = async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
@@ -12,10 +15,15 @@ export default async function handler(req, res) {
   const interval = setInterval(async () => {
     try {
       const r = await fetch(`${UPSTASH_URL}/lrange/chat_messages/0/49`, {
-        headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` }
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
       });
       const data = await r.json();
-      const messages = data.result.map(m => JSON.parse(m));
+      const messages = Array.isArray(data.result)
+        ? data.result.map(m => {
+            try { return JSON.parse(m); } catch(e){ return null; }
+          }).filter(m => m && m.user && m.text)
+        : [];
+
       const current = JSON.stringify(messages);
       if (current !== last) {
         last = current;
@@ -30,4 +38,4 @@ export default async function handler(req, res) {
     clearInterval(interval);
     res.end();
   });
-}
+};
