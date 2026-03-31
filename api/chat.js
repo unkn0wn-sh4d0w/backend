@@ -1,4 +1,6 @@
 // api/chat.js
+const fetch = require("node-fetch"); // if using Node 18+ you can omit
+
 module.exports = async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
@@ -16,15 +18,18 @@ module.exports = async function handler(req, res) {
 
   try {
     const r = await fetch(`${UPSTASH_URL}/lrange/chat_messages/0/99`, {
-      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` }
+      headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
     });
     const data = await r.json();
 
     const messages = Array.isArray(data.result)
       ? data.result
-          .map(m => { 
-              try { return JSON.parse(m); } 
-              catch(e){ return null; } 
+          .map(m => {
+            try {
+              return JSON.parse(m);
+            } catch (e) {
+              return null;
+            }
           })
           .filter(m => m && m.user && m.text)
           .reverse()
