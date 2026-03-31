@@ -1,4 +1,3 @@
-// backends/chat.js
 export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
@@ -6,6 +5,12 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // Prevent caching
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
 
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
@@ -16,13 +21,9 @@ export default async function handler(req, res) {
     });
     const data = await r.json();
 
-    // Ensure data.result exists
     const messages = (data.result || [])
-      .map(m => {
-        try { return JSON.parse(m); }
-        catch (e) { return null; }
-      })
-      .filter(m => m && m.user && m.text) // filter invalid
+      .map(m => { try { return JSON.parse(m); } catch(e){ return null; } })
+      .filter(m => m && m.user && m.text)
       .reverse();
 
     res.status(200).json(messages);
