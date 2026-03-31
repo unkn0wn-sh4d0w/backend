@@ -1,27 +1,44 @@
-import { Redis } from "@upstash/redis";
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN
-});
-
-const bannedWords = ["fuck","shit","nigger","rape","hitler"];
-function clean(text) {
-  return !bannedWords.some(w => new RegExp(`\\b${w}\\b`, "i").test(text));
-}
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
+  const UPSTASH_URL = process.env.KV_REST_API_URL;
+  const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
-  const { text, user, id } = req.body;
-  if (!text || !user || !id) return res.status(400).json({ error: "Missing data" });
-  if (!clean(text) || !clean(user)) return res.status(403).json({ error: "Blocked by automod" });
-  if (text.length > 300) return res.status(403).json({ error: "Message too long" });
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  const msg = { text, user, id, time: Date.now() };
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  await redis.lpush("chat_messages", JSON.stringify(msg));
-  await redis.ltrim("chat_messages", 0, 100); messages
+  try {
+    const { text, user, id } = req.body;
+    if (!text || !user || !id) return res.status(400).json({ error: "Missing data" });
 
-  return res.status(200).json({ success: true });
+    // Simple automod
+    const banned = ["fuck","shit","nigger","rape"];
+    if (banned.some(w => new RegExp(`\\b${w}\\b`, "i").test(text)) ||
+        banned.some(w => new RegExp(`\\b${w}\\b`, "i").test(user))) {
+      return res.status(403).json({ error: "Blocked by automod" });
+    }
+
+    const msg = { text, user, id, time: Date.now() };
+
+    // Push to Redis using Upstash REST API
+    await fetch(`${UPSTASH_URL}/lpush/chat_messages`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify([JSON.stringify(msg)])
+    });
+
+    // Trim list to 100 messages
+    await fetch(`${UPSTASH_URL}/ltrim/chat_messages/0/99`, { 
+      method: "POST", 
+      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` } 
+    });
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 }
