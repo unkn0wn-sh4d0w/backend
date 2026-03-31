@@ -7,12 +7,12 @@
     "dev": "vercel dev",
     "start": "vercel dev"
   },
-  "author": "Sh4d0w",
+  "author": "YourName",
   "license": "MIT",
   "dependencies": {
     "@upstash/redis": "^2.0.0"
   },
   "engines": {
-    "node": "18.x"
+    "node": "24.x"
   }
 }
