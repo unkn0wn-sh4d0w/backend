@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    // NODE 24 SAFE JSON PARSE
+    // Parse JSON manually (Node 24 Serverless safe)
     let body = "";
     await new Promise((resolve, reject) => {
       req.on("data", chunk => body += chunk);
@@ -33,21 +33,20 @@ export default async function handler(req, res) {
 
     const msg = { text, user, id, time: Date.now() };
 
-    // Push to Upstash
+    // Push message to Upstash list
     await fetch(`${UPSTASH_URL}/lpush/chat_messages`, {
       method: "POST",
       headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "application/json" },
       body: JSON.stringify([JSON.stringify(msg)])
     });
 
-    // Keep only last 100 messages
+    // Keep last 100 messages
     await fetch(`${UPSTASH_URL}/ltrim/chat_messages/0/99`, {
       method: "POST",
       headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` }
     });
 
     res.status(200).json({ success: true });
-
   } catch(err){
     console.error("Message error:", err);
     res.status(500).json({ error: "Internal Server Error" });
