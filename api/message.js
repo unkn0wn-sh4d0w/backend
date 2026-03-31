@@ -17,38 +17,26 @@ export default async function handler(req, res) {
       req.on("error", err => reject(err));
     });
     body = JSON.parse(body);
-
     const { text, user, id } = body;
     if (!text || !user || !id) return res.status(400).json({ error: "Missing data" });
-
-    const banned = ["fuck","shit","nigger","rape"];
-    if (banned.some(w => new RegExp(`\\b${w}\\b`, "i").test(text)) ||
-        banned.some(w => new RegExp(`\\b${w}\\b`, "i").test(user))) {
-      return res.status(403).json({ error: "Blocked by automod" });
-    }
-    if (text.length > 300) return res.status(403).json({ error: "Message too long" });
 
     const msg = { text, user, id, time: Date.now() };
 
     // Push message
-    await fetch(`${UPSTASH_URL}/lpush/chat_messages`, {
+    const pushRes = await fetch(`${UPSTASH_URL}/lpush/chat_messages`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${UPSTASH_TOKEN}`,
-        "Content-Type": "application/json"
-      },
+      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "application/json" },
       body: JSON.stringify([JSON.stringify(msg)])
     });
+    console.log("LPUSH response:", await pushRes.json());
 
     // Keep last 100 messages
-    await fetch(`${UPSTASH_URL}/ltrim/chat_messages/0/99`, {
+    const trimRes = await fetch(`${UPSTASH_URL}/ltrim/chat_messages`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${UPSTASH_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify([]) // required for Upstash REST
+      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ start: 0, stop: 99 })
     });
+    console.log("LTRIM response:", await trimRes.json());
 
     res.status(200).json({ success: true });
   } catch(err) {
