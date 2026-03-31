@@ -1,3 +1,4 @@
+// backends/message.js
 export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
@@ -29,25 +30,32 @@ export default async function handler(req, res) {
         banned.some(w => new RegExp(`\\b${w}\\b`, "i").test(user))) {
       return res.status(403).json({ error: "Blocked by automod" });
     }
-    if(text.length > 300) return res.status(403).json({ error: "Message too long" });
+    if (text.length > 300) return res.status(403).json({ error: "Message too long" });
 
     const msg = { text, user, id, time: Date.now() };
 
     // Push message to Upstash list
     await fetch(`${UPSTASH_URL}/lpush/chat_messages`, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "application/json" },
+      headers: { 
+        "Authorization": `Bearer ${UPSTASH_TOKEN}`, 
+        "Content-Type": "application/json" 
+      },
       body: JSON.stringify([JSON.stringify(msg)])
     });
 
-    // Keep last 100 messages
+    // Keep last 100 messages (must include Content-Type and body)
     await fetch(`${UPSTASH_URL}/ltrim/chat_messages/0/99`, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}` }
+      headers: { 
+        "Authorization": `Bearer ${UPSTASH_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify([])
     });
 
     res.status(200).json({ success: true });
-  } catch(err){
+  } catch (err) {
     console.error("Message error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
