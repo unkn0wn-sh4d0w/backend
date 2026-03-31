@@ -1,7 +1,9 @@
+// /api/message.js
 export default async function handler(req, res) {
   const UPSTASH_URL = process.env.KV_REST_API_URL;
   const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
 
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -17,23 +19,38 @@ export default async function handler(req, res) {
       req.on("error", err => reject(err));
     });
     body = JSON.parse(body);
+
     const { text, user, id } = body;
     if (!text || !user || !id) return res.status(400).json({ error: "Missing data" });
 
+    // Simple automod
+    const banned = ["fuck","shit","nigger","rape"];
+    if (banned.some(w => new RegExp(`\\b${w}\\b`, "i").test(text)) ||
+        banned.some(w => new RegExp(`\\b${w}\\b`, "i").test(user))) {
+      return res.status(403).json({ error: "Blocked by automod" });
+    }
+    if (text.length > 300) return res.status(403).json({ error: "Message too long" });
+
     const msg = { text, user, id, time: Date.now() };
 
-    // Push message
+    // **LPUSH** – push message to Upstash
     const pushRes = await fetch(`${UPSTASH_URL}/lpush/chat_messages`, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${UPSTASH_TOKEN}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify([JSON.stringify(msg)])
     });
     console.log("LPUSH response:", await pushRes.json());
 
-    // Keep last 100 messages
+    // **LTRIM** – keep only last 100 messages
     const trimRes = await fetch(`${UPSTASH_URL}/ltrim/chat_messages`, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${UPSTASH_TOKEN}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({ start: 0, stop: 99 })
     });
     console.log("LTRIM response:", await trimRes.json());
