@@ -1,3 +1,5 @@
-"dependencies": {
-  "@vercel/firewall": "^1.0.0",
+{
+  "dependencies": {
+    "@vercel/firewall": "^1.0.0"
+  }
 }
